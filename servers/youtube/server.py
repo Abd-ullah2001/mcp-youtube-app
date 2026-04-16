@@ -48,6 +48,22 @@ def get_video_metadata(video_url: str) -> str:
     except Exception as e:
         return f"Error: {str(e)}"
 
+@mcp.tool()
+def get_top_comments(video_url: str, max_comments: int = 10) -> str:
+    """Get the top popular comments for a YouTube video."""
+    try:
+        return _service.get_top_comments(video_url, max_comments)
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+@mcp.tool()
+def get_channel_videos(channel_url: str, max_results: int = 10) -> str:
+    """Get the latest video uploads from a YouTube channel."""
+    try:
+        return _service.get_channel_videos(channel_url, max_results)
+    except Exception as e:
+        return f"Error: {str(e)}"
+
 
 if __name__ == "__main__":
     mcp.run(transport="stdio")

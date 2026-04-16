@@ -12,6 +12,7 @@ dependencies = [
     "nest-asyncio>=1.6.0",
     "openai==1.75.0",
     "python-dotenv>=1.2.2",
+    "streamlit>=1.56.0",
     "youtube-transcript-api>=1.2.4",
     "yt-dlp>=2026.3.17",
 ]

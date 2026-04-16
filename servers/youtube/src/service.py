@@ -41,9 +41,20 @@ class YouTubeTranscriptService:
         self,
         video_url_or_id: str,
     ):
-        """Fetch transcript."""
+        """Fetch transcript and auto-translate to English if necessary."""
         video_id = extract_video_id(video_url_or_id)
-        return self.api.fetch(video_id)
+        transcript_list = self.api.list_transcripts(video_id)
+        
+        try:
+            # First try to find English natively
+            transcript = transcript_list.find_transcript(['en'])
+        except Exception:
+            # If no english transcript exists, grab the first available transcript (e.g. Hindi/Urdu)
+            first_available = next(iter(transcript_list))
+            # Translate it to english!
+            transcript = first_available.translate('en')
+            
+        return transcript.fetch()
 
     def get_transcript_text(
         self,
@@ -96,3 +107,54 @@ class YouTubeTranscriptService:
             
             output = f"Title: {title}\nChannel: {uploader}\nViews: {views}\n\nDescription:\n{desc}"
             return output
+
+    def get_top_comments(self, video_url: str, max_comments: int = 10) -> str:
+        """Get top comments from a video."""
+        ydl_opts = {
+            'quiet': True,
+            'extract_flat': True,
+            'getcomments': True,
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            try:
+                info = ydl.extract_info(video_url, download=False)
+            except Exception as e:
+                return f"Could not fetch comments: {str(e)}"
+                
+            comments = info.get('comments', [])
+            if not comments:
+                return "No comments available or extracting comments failed."
+                
+            results = []
+            for c in comments[:max_comments]:
+                author = c.get('author', 'Unknown')
+                text = c.get('text', '')
+                likes = c.get('like_count', 0)
+                results.append(f"[{author}] (❤️ {likes} likes):\n{text}\n")
+                
+            return "\n".join(results)
+
+    def get_channel_videos(self, channel_url: str, max_results: int = 10) -> str:
+        """Get latest videos from a channel."""
+        ydl_opts = {
+            'quiet': True,
+            'extract_flat': True,
+            'playlistend': max_results,
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            try:
+                info = ydl.extract_info(channel_url, download=False)
+            except Exception as e:
+                return f"Could not fetch channel videos: {str(e)}"
+            
+            if 'entries' not in info or not info['entries']:
+                return "No videos found in this channel / playlist."
+                
+            results = []
+            for i, entry in enumerate(info['entries']):
+                title = entry.get('title', 'Unknown Title')
+                url = entry.get('url', '')
+                duration = entry.get('duration', 0)
+                results.append(f"{i+1}. {title} | Duration: {duration}s | URL: {url}")
+                
+            return "\n".join(results)
